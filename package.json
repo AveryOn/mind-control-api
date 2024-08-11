@@ -15,6 +15,7 @@
   },
   "imports": {
     "#controllers/*": "./app/controllers/*.js",
+    "#modules/*": "./app/modules/*.js",
     "#exceptions/*": "./app/exceptions/*.js",
     "#models/*": "./app/models/*.js",
     "#mails/*": "./app/mails/*.js",
@@ -43,6 +44,7 @@
     "@swc/core": "^1.6.5",
     "@types/luxon": "^3.4.2",
     "@types/node": "^20.14.9",
+    "chalk": "^5.3.0",
     "eslint": "^8.57.0",
     "hot-hook": "^0.2.6",
     "pino-pretty": "^11.2.1",
@@ -57,6 +59,7 @@
     "@adonisjs/lucid": "^21.1.0",
     "@vinejs/vine": "^2.1.0",
     "luxon": "^3.5.0",
+    "moment": "^2.30.1",
     "pg": "^8.12.0",
     "reflect-metadata": "^0.2.2"
   },
