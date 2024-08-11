@@ -36,6 +36,22 @@ export interface TokenForClient {
 
 // Данные которые уходят на клиент после успешной авторизации в системе
 export interface ResultLoginUserData {
-    user: UserForClient,
-    token: TokenForClient,
+    user: UserForClient;
+    token: TokenForClient;
+}
+
+// Параметры необходимые для извлечения списка пользователей
+export interface FetchParamsUsers {
+    per_page?: number;
+    page?: number;
+}
+
+export interface Paginator {
+    total?: number;
+    perPage?: number;
+    currentPage?: number;
+    lastPage?: number | null;
+    firstPage?: number | null;
+    hasPrev?: boolean;
+    hasNext?: boolean;
 }
