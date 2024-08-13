@@ -6,6 +6,7 @@ import { ResponseData } from "#types/http_types";
 import User from "#models/user";
 import { creationTestValidator } from "../validators/tests_validate.js";
 import { RequestTestData } from "../types/tests_types.js";
+import TestsService from "../services/tests_service.js";
 
 export default class TestsController {
     // Создание нового теста
@@ -19,14 +20,24 @@ export default class TestsController {
             // Проверка / валидация полей запроса
             const rawBody = request.only(['title', 'summary', 'group_id', 'participants', 'questions']);
             const validData: RequestTestData = await creationTestValidator.validate(rawBody);
-            console.log(validData);
-            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: validData } as ResponseData);
+            const newTest = await TestsService.createNewTest(validData);
+            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { test: newTest } } as ResponseData);
         }
     }
 
-    // Получить собственные данные пользователя
+    // Получение списка тестов
     @controllerLogger(import.meta.url)
-    async getOwnerUserData({ request, response, auth }: HttpContext) {
-        response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: null } as ResponseData);
+    async index({ request, response, auth }: HttpContext) {
+        //########### Проверка аутентификации ##########
+        const user: User = await auth.authenticate();
+        // Если контроллер выполнился для пользователя с ролью "student" то ошибка 403. Доступ к этому контроллеру есть только у админа и учителя 
+        if(user.role === 'student') throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
+        if(user.role === 'admin' || user.role === 'teacher') {
+            // Проверка / валидация полей запроса
+            const rawBody = request.only(['title', 'summary', 'group_id', 'participants', 'questions']);
+            const validData: RequestTestData = await creationTestValidator.validate(rawBody);
+            const newTest = await TestsService.createNewTest(validData);
+            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { test: newTest } } as ResponseData);
+        }
     }
 }
