@@ -1,14 +1,17 @@
 import User from "#models/user";
 import db from "@adonisjs/lucid/services/db";
-import { UserCretionData, UserLoginData, ResultLoginUserData, UserForClient, TokenForClient, FetchParamsUsers, Paginator } from "../types/user_types.js";
+import { UserCretionData, UserLoginData, ResultLoginUserData, UserForClient, TokenForClient, FetchUsersParams, GetUsersResponse } from "../types/user_types.js";
+import { Paginator } from "#types/http_types";
 import { Err } from "#services/logger/types";
+import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 
 
 export default class UsersQueriesService {
 
-    static async initPaginator(page?: number, perPage?: number): Promise<any> {
+    // Инициализация пагинатора
+    static async initPaginator(page?: number, perPage?: number): Promise<Paginator | null> {
         return new Promise(async (resolve, reject) => {
-            if((page && !perPage) || (!page && perPage)) return reject({ code: "E_VALIDATION_ERROR", status: 422, messages: [{message: 'Проверьте корректность параметров запроса'}] } as Err);
+            if((page && !perPage) || (!page && perPage)) reject({ code: "E_VALIDATION_ERROR", status: 422, messages: [{message: 'Проверьте корректность параметров запроса'}] } as Err);
             if(page && perPage) {
                 // Объект пагинатора
                 let paginator: Paginator = {
@@ -37,6 +40,7 @@ export default class UsersQueriesService {
                 try {
                     paginator.currentPage = +page;
                     let limit = +perPage;
+                    paginator.perPage = +perPage;
                     paginator.hasPrev = false;
                     paginator.hasNext = false;
                     paginator.lastPage = Math.ceil(paginator.total! / limit);
@@ -48,8 +52,10 @@ export default class UsersQueriesService {
                     resolve(paginator);
                 } catch (err) {
                     console.error(`modules/users/services/users_queries.ts: UsersQueriesService:[initPaginator > filled paginator]  => `, err);
-                    return reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутренняя ошибка сервера'}] } as Err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутренняя ошибка сервера'}] } as Err);
                 }
+            } else {
+                resolve(null);
             }
         });
     }
@@ -94,18 +100,37 @@ export default class UsersQueriesService {
         });
     }
     // Извлечение списка пользоватлей
-    static async getUsers(params: FetchParamsUsers) {
+    static async getUsers(params: FetchUsersParams): Promise<GetUsersResponse> {
         return new Promise((resolve, reject) => {
-            db.transaction(async (trx) => {
+            db.transaction(async (trx: TransactionClientContract) => {
                 try {
-                    // const user: User = await User.query({client: trx}).select('*')
-                    const paginator = await this.initPaginator(params.page, params.per_page);
-                    resolve(paginator);
-                    await trx.commit();
+                    console.log('ВЫЧИСЛЕНИЕ СМЕЩЕНИЯ');
+                    // Вычисление смещения данных для пагинации по perPage относительно запрашиваемой страницы пагинации
+                    function compOffset(paginator: Paginator) {
+                        if (paginator) return (paginator.currentPage! - 1) * paginator.perPage!;
+                        else return 0;
+                    }
+                    console.log('ИНИЦИАЛИЗАЦИЯ ПАГИНАТОРА');
+                    // Инициализация пагинатора
+                    const paginator = await this.initPaginator(params.page, params.per_page).catch((err: Err) => { throw err });
+                    let users: User[];
+                    if(paginator) {
+                        users = await User
+                            .query({client: trx})
+                            .select(['id', 'name', 'login', 'role', 'created_at', 'updated_at'])
+                            .orderBy('created_at', 'asc')
+                            .offset(compOffset(paginator) ?? 0)
+                            .limit(paginator.perPage!);
+                    } 
+                    // Если пагинатор не определен, то извлечение всех пользователей
+                    else {
+                        users = await User.query({client: trx}).select(['id', 'name', 'login', 'role', 'created_at', 'updated_at']).orderBy('created_at', 'asc');
+                    }
+                    console.log('УСПЕХ РАЗРЕШЕНИЕ ПРОМИСА');
+                    resolve({ paginator, users });
                 } catch (err) {
-                    await trx.rollback();
                     console.error('modules/users/services/users_queries.ts: [UsersQueriesService]:getUsers => ', err);
-                    reject(err);
+                    reject({ code: "E_DATABASE_EXCEPTION", status: 500, messages: [{message: 'Внутренняя ошибка сервера'}] } as Err);
                 }
             });
         });

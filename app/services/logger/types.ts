@@ -1,7 +1,5 @@
-
-export type HttpMethods = 'POST' | 'GET' | 'PUT' | 'DELETE' | 'PATCH';
-export type ErrCodes = 'E_VALIDATION_ERROR' | 'E_NOT_FOUND_DATA' | 'E_HTTP_EXCEPTION' | 'E_FORBIDDEN' | 'E_INTERNAL';
-export type ErrStatus = 200 | 300 | 400 | 401 | 403 | 404 | 422 | 500;
+import { ErrStatus, ErrCodes } from '#types/http_types';
+ 
 export interface ErrMessage { 
     message: string;
     [key: string]: any; 

@@ -1,3 +1,6 @@
+import User from "#models/user";
+import { Paginator } from '#types/http_types';
+
 
 // Данные приходящие с клиента для создания новой учетной записи пользователя
 export interface UserCretionData {
@@ -41,17 +44,14 @@ export interface ResultLoginUserData {
 }
 
 // Параметры необходимые для извлечения списка пользователей
-export interface FetchParamsUsers {
+export interface FetchUsersParams {
     per_page?: number;
     page?: number;
 }
 
-export interface Paginator {
-    total?: number;
-    perPage?: number;
-    currentPage?: number;
-    lastPage?: number | null;
-    firstPage?: number | null;
-    hasPrev?: boolean;
-    hasNext?: boolean;
+
+// Результат извлечения данных пользователей из БД
+export interface GetUsersResponse {
+    paginator: Paginator | null;
+    users: User[];
 }

@@ -1,7 +1,8 @@
 import { HttpContext } from '@adonisjs/core/http';
 import chalk from 'chalk';
 import moment from 'moment';
-import type { ErrCodes, HttpMethods, Err } from './types.js';
+import type { Err } from './types.js';
+import { ErrCodes, HttpMethods } from '#types/http_types';
 
 // Форматирование и сборка частей лога ошибки для контроллера
 function bundleControllerErrorMsg(errCode: string, path: string, controllerName: string, HttpMethod: HttpMethods, targetMethod: string) {
