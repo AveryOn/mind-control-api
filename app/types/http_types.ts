@@ -19,5 +19,5 @@ export interface ResponseData {
         url: string;
         paginator?: Paginator | null;
     };
-    data: { [key: string]: any } | any[] | null;
+    data: { [key: string]: any } | any[] | string | number | null;
 }

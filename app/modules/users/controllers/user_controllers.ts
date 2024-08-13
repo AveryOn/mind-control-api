@@ -22,9 +22,19 @@ export default class UserController {
             const rawParams = request.qs();
             const valideParams: FetchUsersParams = await usersFetchParamsValidate.validate(rawParams);
             // Извлечение списка пользователей по пагинации
-            const { paginator, users }: GetUsersResponse = await UsersQueriesService.getUsers(valideParams).catch((err: Err) => { throw err });
+            const { paginator, users }: GetUsersResponse = await UsersQueriesService.getUsers(valideParams, user.id).catch((err: Err) => { throw err });
             response.send({ meta: { status: 200, url: request.url(), paginator }, data: users } as ResponseData);
         } 
         else throw { code: "E_INTERNAL", status: 500, messages: [ { message: 'Внутренняя ошибка сервера' } ] } as Err;
+    }
+
+    // Получить собственные данные пользователя
+    @controllerLogger(import.meta.url)
+    async getOwnerUserData({ request, response, auth }: HttpContext) {
+        //########### Проверка аутентификации ##########
+        const user: User = await auth.authenticate();
+        const readyUser = user.toJSON();
+        Reflect.deleteProperty(readyUser, 'password');
+        response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { user: readyUser } } as ResponseData);
     }
 }

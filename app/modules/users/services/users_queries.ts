@@ -100,17 +100,15 @@ export default class UsersQueriesService {
         });
     }
     // Извлечение списка пользоватлей
-    static async getUsers(params: FetchUsersParams): Promise<GetUsersResponse> {
+    static async getUsers(params: FetchUsersParams, ownerUserId: number): Promise<GetUsersResponse> {
         return new Promise((resolve, reject) => {
             db.transaction(async (trx: TransactionClientContract) => {
                 try {
-                    console.log('ВЫЧИСЛЕНИЕ СМЕЩЕНИЯ');
                     // Вычисление смещения данных для пагинации по perPage относительно запрашиваемой страницы пагинации
                     function compOffset(paginator: Paginator) {
                         if (paginator) return (paginator.currentPage! - 1) * paginator.perPage!;
                         else return 0;
                     }
-                    console.log('ИНИЦИАЛИЗАЦИЯ ПАГИНАТОРА');
                     // Инициализация пагинатора
                     const paginator = await this.initPaginator(params.page, params.per_page).catch((err: Err) => { throw err });
                     let users: User[];
@@ -118,6 +116,7 @@ export default class UsersQueriesService {
                         users = await User
                             .query({client: trx})
                             .select(['id', 'name', 'login', 'role', 'created_at', 'updated_at'])
+                            .whereNot('id', ownerUserId)  // Исключить пользователя, который выполняет запрос
                             .orderBy('created_at', 'asc')
                             .offset(compOffset(paginator) ?? 0)
                             .limit(paginator.perPage!);
@@ -126,7 +125,6 @@ export default class UsersQueriesService {
                     else {
                         users = await User.query({client: trx}).select(['id', 'name', 'login', 'role', 'created_at', 'updated_at']).orderBy('created_at', 'asc');
                     }
-                    console.log('УСПЕХ РАЗРЕШЕНИЕ ПРОМИСА');
                     resolve({ paginator, users });
                 } catch (err) {
                     console.error('modules/users/services/users_queries.ts: [UsersQueriesService]:getUsers => ', err);

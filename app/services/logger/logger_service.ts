@@ -2,7 +2,7 @@ import { HttpContext } from '@adonisjs/core/http';
 import chalk from 'chalk';
 import moment from 'moment';
 import type { Err } from './types.js';
-import { ErrCodes, HttpMethods } from '#types/http_types';
+import { ErrCodes, HttpMethods, ResponseData } from '#types/http_types';
 
 // Форматирование и сборка частей лога ошибки для контроллера
 function bundleControllerErrorMsg(errCode: string, path: string, controllerName: string, HttpMethod: HttpMethods, targetMethod: string) {
@@ -51,10 +51,10 @@ export function controllerLogger(path: string, ) {
                 const bundle = bundleControllerErrorMsg(ctxErr.code, path, this.constructor.name, ctx.request.method() as any, key);
                 console.log(`${bundle?.timeChunck}${bundle?.separator}${bundle?.HttpMethodChunck}${bundle?.separator}${bundle?.errorHeader}${bundle?.separator}${bundle?.pathDescriptior}`);
                 if(ctxErr.code === 'E_VALIDATION_ERROR' as ErrCodes) {
-                    return ctx.response.abort({ meta: { status: ctxErr.status, url: ctx.request.url() }, data: ctxErr.messages }, ctxErr.status);
+                    return ctx.response.abort({ meta: { status: ctxErr.status, url: ctx.request.url() }, data: ctxErr.messages } as ResponseData, ctxErr.status);
                 } 
                 // Другие ошибки
-                ctx.response.abort({ meta: { status: ctxErr.status, url: ctx.request.url() }, data: ctxErr.messages }, ctxErr.status);
+                ctx.response.abort({ meta: { status: ctxErr.status, url: ctx.request.url() }, data: ctxErr.messages } as ResponseData, ctxErr.status);
             }
         };
         return descriptor;

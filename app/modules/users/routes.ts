@@ -8,6 +8,8 @@ router.group(() => {
     // AUTH
     router.post('/auth/login', [AuthController, 'login']);
     router.post('/auth/logup', [AuthController, 'logup']);
+    router.delete('/auth/logout', [AuthController, 'logout']);
     // USERS
     router.get('/users', [UserController, 'getUsers']);
+    router.get('/user/me', [UserController, 'getOwnerUserData']);
 }).prefix('api')
