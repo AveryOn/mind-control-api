@@ -25,4 +25,14 @@ export default class GroupsController {
             response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { group: readyGroupData } } as ResponseData);
         }
     }
+
+    // Получение списка групп с БД
+    @controllerLogger(import.meta.url)
+    async index({ request, response, auth }: HttpContext) {
+        //########### Проверка аутентификации ##########
+        await auth.authenticate();
+        // Извлечение списка групп из БД
+        const readyGroupsData: ResponseDataGroup[] = await GroupsService.getGroups();
+        response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { groups: readyGroupsData } } as ResponseData);
+    }
 }

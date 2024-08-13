@@ -20,4 +20,20 @@ export default class GroupsService {
             });
         });
     }
+
+    // Получение списка групп с базы данных
+    static async getGroups(): Promise<ResponseDataGroup[]> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx) => { 
+                try {
+                    let groups: Group[] | ResponseDataGroup[] = await Group.query({ client: trx }).select('*');
+                    groups = groups.map((group) => group.toJSON() as ResponseDataGroup);
+                    resolve(groups);
+                } catch (err) {
+                    console.error('modules/groups/services/groups_service.ts: [GroupsService]:getGroups => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
 }
