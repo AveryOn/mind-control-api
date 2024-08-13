@@ -8,5 +8,6 @@
 */
 
 import router from '@adonisjs/core/services/router';
-import '#modules/users/routes'
+import '#modules/users/routes';
+import '#modules/tests/routes';
 
