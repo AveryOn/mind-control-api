@@ -4,11 +4,12 @@ import { controllerLogger } from "#services/logger/logger_service";
 import { Err } from "#services/logger/types";
 import { ResponseData } from "#types/http_types";
 import User from "#models/user";
-import { creationTestValidator } from "../validators/tests_validate.js";
-import { RequestTestData } from "../types/tests_types.js";
+import { groupCreationValidator } from "../validators/groups_validate.js";
+import { ReqestBodyCreationGroup, ResponseDataGroup } from "../types/groups_types.js";
+import GroupsService from "../services/groups_service.js";
 
-export default class TestsController {
-    // Создание нового теста
+export default class GroupsController {
+    // Создание новой группы
     @controllerLogger(import.meta.url)
     async store({ request, response, auth }: HttpContext) {
         //########### Проверка аутентификации ##########
@@ -17,16 +18,11 @@ export default class TestsController {
         if(user.role === 'student') throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
         if(user.role === 'admin' || user.role === 'teacher') {
             // Проверка / валидация полей запроса
-            const rawBody = request.only(['title', 'summary', 'group_id', 'participants', 'questions']);
-            const validData: RequestTestData = await creationTestValidator.validate(rawBody);
-            console.log(validData);
-            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: validData } as ResponseData);
+            const rawBody = request.only(['title']);
+            const valideData: ReqestBodyCreationGroup = await groupCreationValidator.validate(rawBody);
+            // Создание новой группы в базе данных
+            const readyGroupData: ResponseDataGroup = await GroupsService.createNewGroup(valideData)
+            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { group: readyGroupData } } as ResponseData);
         }
-    }
-
-    // Получить собственные данные пользователя
-    @controllerLogger(import.meta.url)
-    async getOwnerUserData({ request, response, auth }: HttpContext) {
-        response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: null } as ResponseData);
     }
 }
