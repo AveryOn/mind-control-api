@@ -9,7 +9,6 @@ import { Err } from "#services/logger/types";
 import { ResponseData } from "#types/http_types";
 
 export default class UserController {
-
     // Получение списка пользователей
     @controllerLogger(import.meta.url)
     async getUsers({ request, response, auth }: HttpContext) {
@@ -23,7 +22,7 @@ export default class UserController {
             const valideParams: FetchUsersParams = await usersFetchParamsValidate.validate(rawParams);
             // Извлечение списка пользователей по пагинации
             const { paginator, users }: GetUsersResponse = await UsersQueriesService.getUsers(valideParams, user.id).catch((err: Err) => { throw err });
-            response.send({ meta: { status: 200, url: request.url(), paginator }, data: users } as ResponseData);
+            response.send({ meta: { status: 200, url: request.url(), paginator }, data: { users } } as ResponseData);
         } 
         else throw { code: "E_INTERNAL", status: 500, messages: [ { message: 'Внутренняя ошибка сервера' } ] } as Err;
     }
