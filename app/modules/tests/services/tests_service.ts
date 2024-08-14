@@ -113,7 +113,14 @@ export default class TestsService {
                     }
                     // Если пагинатор не определен, то извлечение всех записей
                     else {
-                        tests = await Test.query({ client: trx }).select(['*']).orderBy('created_at', 'asc');
+                        tests = await Test
+                        .query({ client: trx })
+                        .select(['*'])
+                        .preload('group')
+                        .withAggregate('users', (query) => {
+                            query.count('*').as('users_count')
+                        })
+                        .orderBy('created_at', 'asc');
                     }
                     let readyTest: ResponseCreationTestData[] = [];
                     // Сборка итоговых данных тестов. В них включается кол-во привязанных пользователей
