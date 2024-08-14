@@ -1,3 +1,6 @@
+import Test from "#models/test";
+import { Paginator } from "#types/http_types";
+
 // Единица вопроса теста для создания
 export interface QuestionItemCreation {
     number: number;
@@ -14,4 +17,33 @@ export interface RequestTestData {
     group_id: number;
     participants: number[];
     questions: QuestionItemCreation[];
+}
+
+// Объект данных теста после его создания, который необходимо вернуть на клиент
+export interface ResponseCreationTestData {
+    id: number;
+    title: string;
+    summary: string | null;
+    questionsCount: number;
+    participantsCount: number;
+    createdAt: string;
+    updatedAt: string;
+    group: {
+        id: number;
+        title: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+}
+
+// Объект параметров запроса для получения списка тестов (ADMIN | TEACHER)
+export interface FetchTeacherTestsParams {
+    page?: number;
+    per_page?: number;
+}
+
+// Объект данных возвращается на клиент после извлечения тестов с БД (ADMIN | TEACHER)
+export interface ResponseFetchTeacherTests {
+    paginator: Paginator | null;
+    tests: ResponseCreationTestData[];
 }
