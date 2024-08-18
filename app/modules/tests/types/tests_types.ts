@@ -25,7 +25,7 @@ export interface ResponseCreationTestData {
     title: string;
     summary: string | null;
     questionsCount: number;
-    participantsCount: number;
+    participantsCount: number | null;
     createdAt: string;
     updatedAt: string;
     group: {
@@ -34,6 +34,31 @@ export interface ResponseCreationTestData {
         createdAt: string;
         updatedAt: string;
     };
+}
+
+// Объект данных теста для отправки его ученику по запросу на получение (STUDENT)
+export interface TestDataForStudent {
+    id: number;
+    title: string;
+    summary: string | null;
+    questionsCount: number;
+    participantsCount: number | null;
+    createdAt: string;
+    updatedAt: string;
+    group: {
+        id: number;
+        title: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+    result: {
+        isCheck: boolean;
+        checkDate: string | null;
+        isSuccess: boolean | null;
+        successCount: number | null;
+        duration: number;
+    } | null;
+    results: undefined;
 }
 
 // Объект параметров запроса для получения списка тестов (ADMIN | TEACHER)
@@ -46,4 +71,16 @@ export interface FetchTeacherTestsParams {
 export interface ResponseFetchTeacherTests {
     paginator: Paginator | null;
     tests: ResponseCreationTestData[];
+}
+
+// Объект параметров запроса для получения списка тестов (STUDENT)
+export interface FetchStudentTestsParams {
+    page?: number;
+    per_page?: number;
+}
+
+// Объект данных возвращается на клиент после извлечения тестов с БД (STUDENT)
+export interface ResponseFetchStudentTests {
+    paginator: Paginator | null;
+    tests: TestDataForStudent[];
 }

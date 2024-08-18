@@ -1,10 +1,11 @@
 import db from "@adonisjs/lucid/services/db";
 import { Err } from "#services/logger/types";
-import { FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchTeacherTests } from "../types/tests_types.js";
+import { FetchStudentTestsParams, FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests, TestDataForStudent } from "../types/tests_types.js";
 import Test from "#models/test";
 import QuestionsService from "#modules/questions/services/questions_service";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import { Paginator } from "#types/http_types";
+import User from "#models/user";
 
 
 export default class TestsService {
@@ -141,5 +142,73 @@ export default class TestsService {
             });
         });
     }
+
+    // Получение списка тестов (STUDENT)
+    static async getTestsStudent({ page, per_page }: FetchStudentTestsParams, student: User): Promise<ResponseFetchStudentTests> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => { 
+                try {
+                    // Вычисление смещения данных для пагинации по perPage относительно запрашиваемой страницы пагинации
+                    function compOffset(paginator: Paginator) {
+                        if (paginator) return (paginator.currentPage! - 1) * paginator.perPage!;
+                        else return 0;
+                    }
+                    const paginator = await this.initPaginator(page, per_page).catch((err: Err) => { throw err });
+                    let tests: Test[];
+                    if(paginator) {
+                        student.useTransaction(trx)
+                        tests = await student.related('tests')
+                            .query()
+                            .select(['*'])
+                            .preload('group')
+                            .preload('results', (resultQuery) => {
+                                resultQuery
+                                    .select(['id', 'user_id', 'test_id', 'is_success', 'is_checked', 'check_date', 'duration', 'success_count'])
+                                    .where('user_id', student.id)
+                                    .orderBy('created_at', 'desc')
+                                    .groupLimit(1);
+                            })
+                            .orderBy('created_at', 'asc')
+                            .offset(compOffset(paginator))
+                            .limit(paginator.perPage!);
+                    }
+                    // Если пагинатор не определен, то извлечение всех записей
+                    else {
+                        student.useTransaction(trx)
+                        tests = await student.related('tests')
+                            .query()
+                            .select(['*'])
+                            .preload('group')
+                            .preload('results', (resultQuery) => {
+                                resultQuery
+                                    .select(['id', 'user_id', 'test_id', 'is_success', 'is_checked', 'check_date', 'duration', 'success_count'])
+                                    .where('user_id', student.id)
+                                    .orderBy('created_at', 'desc')
+                                    .groupLimit(1);
+                            })
+                            .orderBy('created_at', 'asc');
+                    }
+                    let readyTest: TestDataForStudent[] = [];
+                    // Сборка итоговых данных тестов.
+                    tests.forEach((test) => {
+                        readyTest.push({
+                            ...test.toJSON(),
+                            result: (test.results.length)? test.results[0].toJSON() : null,
+                            results: undefined,
+                        } as TestDataForStudent);
+                    });
+
+                    await trx.commit();
+                    resolve({ paginator, tests: readyTest });
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/tests/services/tests_service.ts: [TestsService]:getTestsStudent => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
+
+
 
 }
