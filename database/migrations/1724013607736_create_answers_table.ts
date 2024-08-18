@@ -8,7 +8,7 @@ export default class extends BaseSchema {
             table.increments('id').primary();
             table.integer('result_id').unsigned().references('id').inTable('results');
             table.integer('question_id').unsigned().references('id').inTable('questions').onDelete('CASCADE');
-            table.json('answer').notNullable();
+            table.text('answer').notNullable();
             table.boolean('is_correct').nullable();
             table.timestamp('created_at');
             table.timestamp('updated_at');

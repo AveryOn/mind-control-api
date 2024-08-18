@@ -3,6 +3,9 @@ import { Err } from "#services/logger/types";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import { Paginator } from "#types/http_types";
 import Result from "#models/result";
+import { RequestCreationResultsStd } from "../types/results_types.js";
+import User from "#models/user";
+import Answer from "#models/answer";
 
 
 export default class ResultsService {
@@ -59,13 +62,16 @@ export default class ResultsService {
     }
 
     // Создание нового результата для теста (STUDENT)
-    static async createNewResultStd(data: any): Promise<any> {
+    static async createNewResultStd({ answers, duration, test_id: testId, userId }: RequestCreationResultsStd, student: User): Promise<any> {
         return new Promise((resolve, reject) => { 
             db.transaction(async (trx: TransactionClientContract) => { 
                 try {
-
-                    await trx.commit();
-                    resolve(null);
+                    await student.useTransaction(trx);
+                    const newResult: Result = await student.related('results').create({ duration, testId, });
+                    newResult.useTransaction(trx);
+                    const newAnswers: Answer[] = await newResult.related('answers').createMany([...answers]);
+                    await trx.rollback();
+                    resolve({ newAnswers, newResult });
                 } catch (err) {
                     await trx.rollback();
                     console.error('modules/results/services/results_service.ts: [ResultsService]:createNewResultStd => ', err);
