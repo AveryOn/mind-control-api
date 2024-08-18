@@ -5,13 +5,13 @@ import { controllerLogger } from "#services/logger/logger_service";
 import { Err } from "#services/logger/types";
 import { ResponseData } from "#types/http_types";
 import User from "#models/user";
-import { resultCreationValidator } from "../validators/results_validate.js";
+import { resultCreationValidator, resultsFetchValidatorTchr } from "../validators/results_validate.js";
 import ResultsService from "../services/results_service.js";
-import { RequestCreationResultsStd } from "../types/results_types.js";
+import { RequestCreationResultsStd, RequestFetchResultsTchr } from "../types/results_types.js";
 
 export default class ResultsController {
 
-    // Получение теста по ID (STUDENT)
+    // Создание нового результата для теста (STUDENT)
     @controllerLogger(import.meta.url)
     async store({ request, response, auth }: HttpContext) {
         //########### Проверка аутентификации ##########
@@ -28,5 +28,22 @@ export default class ResultsController {
         } 
         // Админу и Учителю в доступе к маршруту отказано
         else throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
+    }
+
+    // Получение результатов теста (STUDENT)
+    @controllerLogger(import.meta.url)
+    async indexTeacher({ request, response, auth }: HttpContext) {
+        //########### Проверка аутентификации ##########
+        const user: User = await auth.authenticate();
+        // Если контроллер выполнился для пользователя с ролью "student", то ошибка 403. Доступ к этому контроллеру есть только у админа и учителя 
+        if(user.role === 'student') throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
+        else if(user.role === 'admin' || user.role === 'teacher') {
+            // Проверка / валидация полей запроса
+            const rawParams = request.params();
+            const rawQs = request.qs();
+            const valideData: RequestFetchResultsTchr = await resultsFetchValidatorTchr.validate({ ...rawParams, ...rawQs });
+            const { paginator, results } = await ResultsService.getResultsTchr(valideData, user);
+            response.send({ meta: { status: 200, url: request.url(), paginator }, data: { results } } as ResponseData);
+        }
     }
 }

@@ -3,14 +3,14 @@ import { Err } from "#services/logger/types";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import { Paginator } from "#types/http_types";
 import Result from "#models/result";
-import { RequestCreationResultsStd } from "../types/results_types.js";
+import { RequestCreationResultsStd, RequestFetchResultsTchr } from "../types/results_types.js";
 import User from "#models/user";
 import Answer from "#models/answer";
 
 
 export default class ResultsService {
     // Инициализация пагинатора
-    static async initPaginator(page?: number, perPage?: number): Promise<Paginator | null> {
+    static async initPaginator(testId: number, page?: number, perPage?: number): Promise<Paginator | null> {
         return new Promise(async (resolve, reject) => {
             if((page && !perPage) || (!page && perPage)) reject({ code: "E_VALIDATION_ERROR", status: 422, messages: [{ message: 'Проверьте корректность параметров запроса' }] } as Err);
             if(page && perPage) {
@@ -28,7 +28,7 @@ export default class ResultsService {
                 const trxTotalCount = await db.transaction();
                 try {
                     // Вычисление общего количества строк в таблице
-                    const totalCount = await Result.query({client: trxTotalCount}).count('* as total');
+                    const totalCount = await Result.query({client: trxTotalCount}).where('test_id', testId).count('* as total');
                     let total = totalCount[0].$extras.total;
                     if(total) paginator.total = +total;
                     await trxTotalCount.commit();
@@ -83,4 +83,44 @@ export default class ResultsService {
         });
     }
 
+    // Получение результатов (ADMIN | TEACHER)
+    static async getResultsTchr({ page, per_page, test_id }: RequestFetchResultsTchr, teacher: User): Promise<any> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => { 
+                try {
+                    // Вычисление смещения данных для пагинации по perPage относительно запрашиваемой страницы пагинации
+                    function compOffset(paginator: Paginator) {
+                        if (paginator) return (paginator.currentPage! - 1) * paginator.perPage!;
+                        else return 0;
+                    }
+                    // Инициализация пагинатора
+                    const paginator = await this.initPaginator(test_id, page, per_page).catch((err: Err) => { throw err });
+                    let results: Result[];
+                    if(paginator) {
+                        results = await Result
+                            .query({ client: trx })
+                            .select('*')
+                            .where('test_id', test_id)
+                            .orderBy('created_at', 'asc')
+                            .offset(compOffset(paginator))
+                            .limit(paginator.perPage!);
+                    }
+                    // Если пагинатор не определен, то извлечение всех записей
+                    else {
+                        results = await Result
+                            .query({ client: trx })
+                            .select('*')
+                            .where('test_id', test_id)
+                            .orderBy('created_at', 'asc')
+                    }
+                    await trx.commit();
+                    resolve({ paginator, results });
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/results/services/results_service.ts: [ResultsService]:getResultsTchr => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
 }
