@@ -62,16 +62,18 @@ export default class ResultsService {
     }
 
     // Создание нового результата для теста (STUDENT)
-    static async createNewResultStd({ answers, duration, test_id: testId, userId }: RequestCreationResultsStd, student: User): Promise<any> {
+    static async createNewResultStd({ answers, duration, test_id: testId }: RequestCreationResultsStd, student: User): Promise<null> {
         return new Promise((resolve, reject) => { 
             db.transaction(async (trx: TransactionClientContract) => { 
                 try {
                     await student.useTransaction(trx);
+                    // Создание результата
                     const newResult: Result = await student.related('results').create({ duration, testId, });
                     newResult.useTransaction(trx);
-                    const newAnswers: Answer[] = await newResult.related('answers').createMany([...answers]);
-                    await trx.rollback();
-                    resolve({ newAnswers, newResult });
+                    // Создание связанных с новым результатом ответов
+                    await newResult.related('answers').createMany([...answers]);
+                    await trx.commit();
+                    resolve(null);
                 } catch (err) {
                     await trx.rollback();
                     console.error('modules/results/services/results_service.ts: [ResultsService]:createNewResultStd => ', err);

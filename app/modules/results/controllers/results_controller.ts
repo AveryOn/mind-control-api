@@ -19,14 +19,12 @@ export default class ResultsController {
         // Если контроллер выполнился для пользователя с ролью "student", 
         if(student.role === 'student') {
             const rawParams = request.params();
-            const rawBody = request.only(['userId', 'duration', 'answers']);
+            const rawBody = request.only(['duration', 'answers']);
             // Проверка / валидация полей запроса
             const valideData: RequestCreationResultsStd = await resultCreationValidator.validate({ ...rawParams, ...rawBody });
-            // Если ID пользователя совершившего запрос не равен тому userId который он передает в теле запроса то ошибка
-            if(valideData.userId !== student.id) throw { code: "E_VALIDATION_ERROR", status: 422, messages: [{message: 'Проверьте корректность значения userId'}] } as Err;
             // Создание результата в БД
-            const res = await ResultsService.createNewResultStd(valideData, student);
-            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: res } as ResponseData);
+            await ResultsService.createNewResultStd(valideData, student);
+            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: null } as ResponseData);
         } 
         // Админу и Учителю в доступе к маршруту отказано
         else throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
