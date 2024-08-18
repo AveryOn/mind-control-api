@@ -4,8 +4,8 @@ import { controllerLogger } from "#services/logger/logger_service";
 import { Err } from "#services/logger/types";
 import { ResponseData } from "#types/http_types";
 import User from "#models/user";
-import { creationTestValidator, getTestsValidatorTeacher } from "../validators/tests_validate.js";
-import { FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests } from "../types/tests_types.js";
+import { creationTestValidator, getTestByIdStudentValidator, getTestsValidatorTeacher } from "../validators/tests_validate.js";
+import { FetchStudentTestByID, FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests, TestDataForStudent } from "../types/tests_types.js";
 import TestsService from "../services/tests_service.js";
 
 export default class TestsController {
@@ -53,6 +53,25 @@ export default class TestsController {
             const validData: FetchTeacherTestsParams = await getTestsValidatorTeacher.validate(rawQs);
             const { paginator, tests }: ResponseFetchStudentTests = await TestsService.getTestsStudent(validData, student);
             response.send({ meta: { status: 200, url: request.url(), paginator }, data: { tests } } as ResponseData);
+        } 
+        // Админу и Учителю в доступе к маршруту отказано
+        else throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
+    }
+
+
+    // Получение теста по ID (STUDENT)
+    @controllerLogger(import.meta.url)
+    async getTestByIdStudent({ request, response, auth }: HttpContext) {
+        //########### Проверка аутентификации ##########
+        const student: User = await auth.authenticate();
+        // Если контроллер выполнился для пользователя с ролью "student", 
+        if(student.role === 'student') {
+            // Проверка / валидация полей запроса
+            const rawParams = request.params();
+            const validData: FetchStudentTestByID = await getTestByIdStudentValidator.validate(rawParams);
+            // Извлечение из БД данных теста 
+            const { test }: { test: TestDataForStudent } = await TestsService.getTestByIdStudent(validData, student);
+            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { test } } as ResponseData);
         } 
         // Админу и Учителю в доступе к маршруту отказано
         else throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;

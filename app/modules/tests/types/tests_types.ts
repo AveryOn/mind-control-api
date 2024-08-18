@@ -67,6 +67,7 @@ export interface FetchTeacherTestsParams {
     per_page?: number;
 }
 
+
 // Объект данных возвращается на клиент после извлечения тестов с БД (ADMIN | TEACHER)
 export interface ResponseFetchTeacherTests {
     paginator: Paginator | null;
@@ -83,4 +84,9 @@ export interface FetchStudentTestsParams {
 export interface ResponseFetchStudentTests {
     paginator: Paginator | null;
     tests: TestDataForStudent[];
+}
+
+// Объект параметров для получения теста по ID (STUDENT)
+export interface FetchStudentTestByID {
+    test_id: number;
 }

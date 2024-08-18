@@ -1,6 +1,6 @@
 import db from "@adonisjs/lucid/services/db";
 import { Err } from "#services/logger/types";
-import { FetchStudentTestsParams, FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests, TestDataForStudent } from "../types/tests_types.js";
+import { FetchStudentTestByID, FetchStudentTestsParams, FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests, TestDataForStudent } from "../types/tests_types.js";
 import Test from "#models/test";
 import QuestionsService from "#modules/questions/services/questions_service";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
@@ -203,6 +203,44 @@ export default class TestsService {
                 } catch (err) {
                     await trx.rollback();
                     console.error('modules/tests/services/tests_service.ts: [TestsService]:getTestsStudent => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
+
+    // Получение теста по ID (STUDENT)
+    static async getTestByIdStudent({ test_id }: FetchStudentTestByID, student: User): Promise<{ test: TestDataForStudent }> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => { 
+                try {
+                    student.useTransaction(trx)
+                    const test = await student.related('tests')
+                        .query()
+                        .select(['*'])
+                        .where('tests.id', test_id)
+                        .preload('group')
+                        .preload('results', (resultQuery) => {
+                            resultQuery
+                                .select(['id', 'user_id', 'test_id', 'is_success', 'is_checked', 'check_date', 'duration', 'success_count'])
+                                .where('user_id', student.id)
+                                .orderBy('created_at', 'desc')
+                                .groupLimit(1);
+                        })
+                        .orderBy('created_at', 'asc')
+                        .firstOrFail();
+                    
+                    await trx.commit();
+                    let readyTest: TestDataForStudent;
+                    readyTest = {
+                        ...test.toJSON(),
+                        result: (test.results.length)? test.results[0].toJSON() : null,
+                        results: undefined,
+                    } as TestDataForStudent;
+                    resolve({ test: readyTest });
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/tests/services/tests_service.ts: [TestsService]:getTestByIdStudent => ', err);
                     reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
                 }
             });
