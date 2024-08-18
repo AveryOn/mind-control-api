@@ -4,6 +4,7 @@ import Test from "#models/test";
 import { QuestionItemCreation } from "#modules/tests/types/tests_types";
 import Question from "#models/question";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
+import { GeneralQuestionData, RequestStudentParamsForGetList, ResponseStudentGetQuestionsData, ResponseStudentQuestion } from "../types/questions_types.js";
 
 
 export default class QuestionsService {
@@ -26,9 +27,38 @@ export default class QuestionsService {
                 resolve(newQuestions);
             } catch (err) {
                 console.error('modules/questions/services/questions_service.ts: [QuestionsService]:createQuestionsForTest => ', err);
-                reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутренняя ошибка сервера'}] } as Err);
             }
         });
     }
 
+    // Получение списка вопросов теста (STUDENT)
+    static async getListQuestionsStudent({ test_id }: RequestStudentParamsForGetList): Promise<ResponseStudentGetQuestionsData> {
+        return new Promise(async (resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => {  
+                try {
+                    const questions: Question[] = await Question
+                        .query({ client: trx })
+                        .select('*')
+                        .where('test_id', test_id)
+                    await trx.commit();
+                    const readyListQuestions: ResponseStudentQuestion[] = [];
+                    // Преобразование объектов вопроса, для того чтобы извлечь у вариантов ответа ключ isCorrect который ученик получать не должен
+                    questions.forEach((question) => {
+                        const questionJson: GeneralQuestionData = question.toJSON() as GeneralQuestionData;
+                        readyListQuestions.push({
+                            ...questionJson,
+                            checkboxAnswers: questionJson.checkboxAnswers.map((item) => ({ answer: item.answer })),
+                            radioAnswers: questionJson.radioAnswers.map((item) => ({ answer: item.answer })),
+                        } as ResponseStudentQuestion);
+                    });
+                    resolve({ questions: readyListQuestions });
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/questions/services/questions_service.ts: [QuestionsService]:getListQuestionsStudent => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутренняя ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
 }
