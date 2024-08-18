@@ -3,7 +3,7 @@ import { Err } from "#services/logger/types";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import { Paginator } from "#types/http_types";
 import Result from "#models/result";
-import { RequestCreationResultsStd, RequestFetchResultsTchr } from "../types/results_types.js";
+import { FetchResultTchr, RequestCreationResultsStd, RequestFetchResultsTchr, ResponseFetchResultsTchr } from "../types/results_types.js";
 import User from "#models/user";
 import Answer from "#models/answer";
 
@@ -84,7 +84,7 @@ export default class ResultsService {
     }
 
     // Получение результатов (ADMIN | TEACHER)
-    static async getResultsTchr({ page, per_page, test_id }: RequestFetchResultsTchr, teacher: User): Promise<any> {
+    static async getResultsTchr({ page, per_page, test_id }: RequestFetchResultsTchr, teacher: User): Promise<ResponseFetchResultsTchr> {
         return new Promise((resolve, reject) => { 
             db.transaction(async (trx: TransactionClientContract) => { 
                 try {
@@ -101,6 +101,9 @@ export default class ResultsService {
                             .query({ client: trx })
                             .select('*')
                             .where('test_id', test_id)
+                            .preload('test', (testQuery) => {
+                                testQuery.select('questions_count').as('questions_count')
+                            })
                             .orderBy('created_at', 'asc')
                             .offset(compOffset(paginator))
                             .limit(paginator.perPage!);
@@ -111,10 +114,23 @@ export default class ResultsService {
                             .query({ client: trx })
                             .select('*')
                             .where('test_id', test_id)
+                            .preload('test', (testQuery) => {
+                                testQuery.select(['questions_count']).as('questions_count');
+                            })
                             .orderBy('created_at', 'asc')
                     }
                     await trx.commit();
-                    resolve({ paginator, results });
+                    let readyResults: FetchResultTchr[] = [];
+                    // Форматирование итоговых объектов result для добавления ключа questionsCount и удаления test
+                    readyResults = [...results.map((result) => {
+                        const readyResult = {
+                            ...result.toJSON(),
+                            questionsCount: result.test.questionsCount,
+                        } as FetchResultTchr;
+                        Reflect.deleteProperty(readyResult, 'test');
+                        return readyResult;
+                    })] 
+                    resolve({ paginator, results: readyResults });
                 } catch (err) {
                     await trx.rollback();
                     console.error('modules/results/services/results_service.ts: [ResultsService]:getResultsTchr => ', err);

@@ -7,7 +7,7 @@ import { ResponseData } from "#types/http_types";
 import User from "#models/user";
 import { resultCreationValidator, resultsFetchValidatorTchr } from "../validators/results_validate.js";
 import ResultsService from "../services/results_service.js";
-import { RequestCreationResultsStd, RequestFetchResultsTchr } from "../types/results_types.js";
+import { RequestCreationResultsStd, RequestFetchResultsTchr, ResponseFetchResultsTchr } from "../types/results_types.js";
 
 export default class ResultsController {
 
@@ -42,7 +42,8 @@ export default class ResultsController {
             const rawParams = request.params();
             const rawQs = request.qs();
             const valideData: RequestFetchResultsTchr = await resultsFetchValidatorTchr.validate({ ...rawParams, ...rawQs });
-            const { paginator, results } = await ResultsService.getResultsTchr(valideData, user);
+            // Извлечение результатов теста из БД
+            const { paginator, results }: ResponseFetchResultsTchr = await ResultsService.getResultsTchr(valideData, user);
             response.send({ meta: { status: 200, url: request.url(), paginator }, data: { results } } as ResponseData);
         }
     }
