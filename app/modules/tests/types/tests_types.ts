@@ -61,6 +61,25 @@ export interface TestDataForStudent {
     results: undefined;
 }
 
+// Объект данных теста для отправки его учителю по запросу на получение (ADMIN | TEACHER)
+export interface TestDataForTeacher {
+    id: number;
+    title: string;
+    summary: string | null;
+    questionsCount: number;
+    participantsCount: number | null;
+    createdAt: string;
+    updatedAt: string;
+    group: {
+        id: number;
+        title: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+    result: null;
+    results: undefined;
+}
+
 // Объект параметров запроса для получения списка тестов (ADMIN | TEACHER)
 export interface FetchTeacherTestsParams {
     page?: number;
@@ -88,5 +107,10 @@ export interface ResponseFetchStudentTests {
 
 // Объект параметров для получения теста по ID (STUDENT)
 export interface FetchStudentTestByID {
+    test_id: number;
+}
+
+// Объект параметров для получения теста по ID (ADMIN | TEACHER)
+export interface FetchTeacherTestByID {
     test_id: number;
 }

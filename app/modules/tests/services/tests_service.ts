@@ -1,6 +1,6 @@
 import db from "@adonisjs/lucid/services/db";
 import { Err } from "#services/logger/types";
-import { FetchStudentTestByID, FetchStudentTestsParams, FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests, TestDataForStudent } from "../types/tests_types.js";
+import { FetchStudentTestByID, FetchStudentTestsParams, FetchTeacherTestByID, FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests, TestDataForStudent, TestDataForTeacher } from "../types/tests_types.js";
 import Test from "#models/test";
 import QuestionsService from "#modules/questions/services/questions_service";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
@@ -247,6 +247,29 @@ export default class TestsService {
         });
     }
 
-
-
+    // Получение теста по ID (ADMIN | TEACHER)
+    static async getTestByIdTeacher({ test_id }: FetchTeacherTestByID): Promise<{ test: TestDataForTeacher }> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => { 
+                try {
+                    const test = await Test
+                        .query({ client: trx })
+                        .select(['*'])
+                        .where('id', test_id)
+                        .preload('group')
+                        .orderBy('created_at', 'asc')
+                        .firstOrFail();
+                    await trx.commit();
+                    let readyTest: TestDataForTeacher;
+                    readyTest = test.toJSON() as TestDataForTeacher;
+                    readyTest.result = null;
+                    resolve({ test: readyTest });
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/tests/services/tests_service.ts: [TestsService]:getTestByIdTeacher => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
 }
