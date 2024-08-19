@@ -3,11 +3,12 @@ import { Err } from "#services/logger/types";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import { Paginator } from "#types/http_types";
 import Result from "#models/result";
-import { FetchResultTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsTchr } from "../types/results_types.js";
+import { FetchResultTchr, RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsTchr } from "../types/results_types.js";
 import User from "#models/user";
 import Answer from "#models/answer";
 import Test from "#models/test";
 import Question from "#models/question";
+import { DateTime } from "luxon";
 
 
 export default class ResultsService {
@@ -171,6 +172,42 @@ export default class ResultsService {
                 } catch (err) {
                     await trx.rollback();
                     console.error('modules/results/services/results_service.ts: [ResultsService]:getResultByIdTchr => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
+
+    // Подтверждение проверки результата Учителем (ADMIN | TEACHER)
+    static async checkResultTchrDB({ test_id, result_id, check_date, is_success, result_answers }: RequestCheckResultDataTchr): Promise<null> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => { 
+                try {
+                    const result: Result = await Result.findByOrFail('id', result_id, { client: trx });
+                    let answers: Answer[] = await result.related('answers').query().select('*');
+                    let successCount: number = 0; 
+                    // Необходимо обновить ответы, которые давал ученик на вопросы, для того чтобы определить верен ли каждый из них или нет
+                    answers.forEach(async (answer) => {
+                        for (const r of result_answers) {
+                            if(r.id === answer.id) {
+                                answer.isCorrect = r.isCorrect;
+                                answer.isCorrect && successCount++;  // также обновляем счетчик правильных ответов
+                            } 
+                        }
+                    });
+                    // Данные результат актуализируются
+                    result.checkDate = DateTime.fromISO(check_date);
+                    result.isSuccess = is_success;
+                    result.isChecked = true;
+                    result.successCount = successCount;
+                    result.useTransaction(trx)
+                    await result.save();
+                    await result.related('answers').saveMany([...answers]);
+                    await trx.commit();
+                    resolve(null);
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/results/services/results_service.ts: [ResultsService]:checkResultTchrDB => ', err);
                     reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
                 }
             });

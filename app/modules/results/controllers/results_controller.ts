@@ -77,9 +77,9 @@ export default class ResultsController {
             const rawParams = request.params();
             const rawBody = request.only(['check_date', 'is_success', 'result_answers'])
             const valideData: RequestCheckResultDataTchr = await resultCheckValidatorTchr.validate({ ...rawParams, ...rawBody });
-            // Извлечение результа по ID из БД
-            // const { result }: { result: ResponseFetchResultTchr } = await ResultsService.getResultByIdTchr(valideData).catch((err: Err) => { throw err });
-            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: valideData } as ResponseData);
+            // Обновление данных результата в БД
+            await ResultsService.checkResultTchrDB(valideData).catch((err: Err) => { throw err });
+            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: null } as ResponseData);
         }
     }
 }
