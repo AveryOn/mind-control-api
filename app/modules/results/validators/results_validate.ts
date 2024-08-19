@@ -16,3 +16,10 @@ export const resultsFetchValidatorTchr = vine.compile(vine.object({
     page: vine.number().positive().min(1).optional().requiredIfExists('per_page'),
     per_page: vine.number().positive().min(1).optional().requiredIfExists('page'),
 }));
+
+// Объект параметров необходимый для получения данных результата (ADMIN | TEACHER)
+export const resultFetchValidatorTchr = vine.compile(vine.object({
+    test_id: vine.number().positive().min(1),
+    result_id: vine.number().positive().min(1),
+}));
+

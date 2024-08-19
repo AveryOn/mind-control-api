@@ -3,9 +3,11 @@ import { Err } from "#services/logger/types";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import { Paginator } from "#types/http_types";
 import Result from "#models/result";
-import { FetchResultTchr, RequestCreationResultsStd, RequestFetchResultsTchr, ResponseFetchResultsTchr } from "../types/results_types.js";
+import { FetchResultTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsTchr } from "../types/results_types.js";
 import User from "#models/user";
 import Answer from "#models/answer";
+import Test from "#models/test";
+import Question from "#models/question";
 
 
 export default class ResultsService {
@@ -134,6 +136,41 @@ export default class ResultsService {
                 } catch (err) {
                     await trx.rollback();
                     console.error('modules/results/services/results_service.ts: [ResultsService]:getResultsTchr => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
+
+    // Получение данных результата по ID (ADMIN | TEACHER)
+    static async getResultByIdTchr({ test_id, result_id }: RequestFetchResultTchr): Promise<{ result: ResponseFetchResultTchr }> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => { 
+                try {
+                    const test = await Test.find(test_id, { client: trx });
+                    if(test) {
+                        test.useTransaction(trx);
+                        await test.load('group');
+                        const result: Result = await test.related('results').query().select('*').where('results.id', result_id).firstOrFail();
+                        result.useTransaction(trx)
+                        const questions: Question[] = await test.related('questions').query().select('*').orderBy('created_at', 'asc')
+                        const answers: Answer[] = await result.related('answers').query().select('*').orderBy('created_at', 'asc');
+                        const student: User = await result.related('user').query().select(['id', 'name', 'login', 'role', 'created_at', 'updated_at']).firstOrFail();
+                        await trx.commit();
+                        const readyResult = {
+                            ...result.toJSON(),
+                            questionsCount: test.questionsCount,
+                            test: { ...test.toJSON(), groupId: undefined },
+                            questions: questions.map((question) => question.toJSON()),
+                            answers: answers.map((answer) => answer.toJSON()),
+                            student: student.toJSON(),
+                        } as ResponseFetchResultTchr;
+                        resolve({ result: readyResult });
+                    } 
+                    else reject({ code: "E_DATABASE_EXCEPTION", status: 500, messages: [{message: 'Не удалось получить данные теста'}] } as Err);
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/results/services/results_service.ts: [ResultsService]:getResultByIdTchr => ', err);
                     reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
                 }
             });

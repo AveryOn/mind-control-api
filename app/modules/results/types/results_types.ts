@@ -14,7 +14,13 @@ export interface RequestFetchResultsTchr {
     per_page?: number; 
 }
 
-// Сырой объект результата при извлечении из БД (ADMIN | TEACHER)
+// Объект необходимый для получения данных результата (ADMIN | TEACHER)
+export interface RequestFetchResultTchr {
+    test_id: number;
+    result_id: number;
+}
+
+// Объект результата при извлечении из БД (ADMIN | TEACHER)
 export interface FetchResultTchr {
     id: number;
     userId: number;
@@ -33,4 +39,46 @@ export interface FetchResultTchr {
 export interface ResponseFetchResultsTchr {
     paginator: Paginator | null;
     results: FetchResultTchr[];
+}
+
+// Ответ при получении данных результата по ID (ADMIN | TEACHER)
+export type ResponseFetchResultTchr = FetchResultTchr & {
+    test: {
+        id: number;
+        title: string;
+        summary: string;
+        group: any;
+        questionsCount: number;
+        createdAt: string;
+        updatedAt: string;
+        groupId: undefined;
+    };
+    questions: {
+        id: number;
+        testId: number;
+        number: number;
+        question: string;
+        type: 'text' | 'checkbox' | 'radio';
+        radioAnswers: { answer: string; isCorrect: boolean }[];
+        checkboxAnswers: { answer: string; isCorrect: boolean }[];
+        createdAt: string;
+        updatedAt: string;
+    }[];
+    answers: {
+        id: number;
+        resultId: number;
+        questionId: number;
+        answer: string;
+        isCorrect: null | boolean;
+        createdAt: string;
+        updatedAt: string;
+    }[];
+    student: {
+        id: number;
+        name: string;
+        login: string;
+        role: "student" | "admin" | "teacher";
+        createdAt: string;
+        updatedAt: string;
+    };
 }
