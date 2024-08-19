@@ -23,3 +23,17 @@ export const resultFetchValidatorTchr = vine.compile(vine.object({
     result_id: vine.number().positive().min(1),
 }));
 
+// Объект данных, необходимый для подтверждения проверки результата (ADMIN | TEACHER)
+export const resultCheckValidatorTchr = vine.compile(vine.object({
+    check_date: vine.string().trim(),
+    is_success: vine.boolean(),
+    result_answers: vine.array(vine.object({
+        id: vine.number().positive().min(1),
+        questionId: vine.number().positive().min(1),
+        isCorrect: vine.boolean(),
+    })),
+    // path params
+    result_id: vine.number().positive().min(1),
+    test_id: vine.number().positive().min(1),
+}));
+

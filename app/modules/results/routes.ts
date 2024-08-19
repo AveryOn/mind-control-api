@@ -5,4 +5,5 @@ router.group(() => {
     router.post('/student/test/:test_id/results/create', [ResultsController, 'store']);                     // Создание нового результата для теста (STUDENT)
     router.get('/teahcer/test/:test_id/results/', [ResultsController, 'indexTeacher']);                     // Получение результатов теста (ADMIN | TEACHER)
     router.get('/teahcer/test/:test_id/results/:result_id/', [ResultsController, 'getResultByIdTeacher']);  // Получение результата по ID (ADMIN | TEACHER)
+    router.post('/teahcer/test/:test_id/results/:result_id/check', [ResultsController, 'checkResultTchr']); // Подтверждение проверки результата (ADMIN | TEACHER)
 }).prefix('api');
