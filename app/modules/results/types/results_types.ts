@@ -14,6 +14,13 @@ export interface RequestFetchResultsTchr {
     per_page?: number; 
 }
 
+// Объект необходимый для получения результатов теста (STUDENT)
+export interface RequestFetchResultsStd {
+    test_id: number;
+    page?: number;
+    per_page?: number; 
+}
+
 // Объект необходимый для получения данных результата (ADMIN | TEACHER)
 export interface RequestFetchResultTchr {
     test_id: number;
@@ -35,11 +42,35 @@ export interface FetchResultTchr {
     questionsCount: number;
 }
 
+
 // Ответ при получении результатов теста (ADMIN | TEACHER)
 export interface ResponseFetchResultsTchr {
     paginator: Paginator | null;
     results: FetchResultTchr[];
 }
+
+
+// Объект результата при извлечении из БД (STUDENT)
+export interface FetchResultStd {
+    id: number;
+    userId: number;
+    testId: number;
+    isSuccess: null | boolean;
+    isChecked: boolean;
+    checkDate: null | string;
+    duration: number;
+    successCount: number;
+    createdAt: string;
+    updatedAt: string;
+    questionsCount: number;
+}
+
+// Ответ при получении результатов теста (STUDENT)
+export interface ResponseFetchResultsStd {
+    paginator: Paginator | null;
+    results: FetchResultStd[];
+}
+
 
 // Ответ при получении данных результата по ID (ADMIN | TEACHER)
 export type ResponseFetchResultTchr = FetchResultTchr & {

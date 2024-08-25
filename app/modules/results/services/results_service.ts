@@ -3,7 +3,7 @@ import { Err } from "#services/logger/types";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import { Paginator } from "#types/http_types";
 import Result from "#models/result";
-import { FetchResultTchr, RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsTchr } from "../types/results_types.js";
+import { FetchResultStd, FetchResultTchr, RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsStd, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsStd, ResponseFetchResultsTchr } from "../types/results_types.js";
 import User from "#models/user";
 import Answer from "#models/answer";
 import Test from "#models/test";
@@ -80,6 +80,63 @@ export default class ResultsService {
                 } catch (err) {
                     await trx.rollback();
                     console.error('modules/results/services/results_service.ts: [ResultsService]:createNewResultStd => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
+
+    // Получение результатов (STUDENT)
+    static async getResultsStd({ page, per_page, test_id }: RequestFetchResultsStd, student: User): Promise<ResponseFetchResultsStd> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => { 
+                try {
+                    // Вычисление смещения данных для пагинации по perPage относительно запрашиваемой страницы пагинации
+                    function compOffset(paginator: Paginator) {
+                        if (paginator) return (paginator.currentPage! - 1) * paginator.perPage!;
+                        else return 0;
+                    }
+                    // Инициализация пагинатора
+                    const paginator = await this.initPaginator(test_id, page, per_page).catch((err: Err) => { throw err });
+                    let results: Result[];
+                    if(paginator) {
+                        results = await Result
+                            .query({ client: trx })
+                            .select('*')
+                            .where('test_id', test_id)
+                            .preload('test', (testQuery) => {
+                                testQuery.select('questions_count').as('questions_count')
+                            })
+                            .orderBy('created_at', 'asc')
+                            .offset(compOffset(paginator))
+                            .limit(paginator.perPage!);
+                    }
+                    // Если пагинатор не определен, то извлечение всех записей
+                    else {
+                        results = await Result
+                            .query({ client: trx })
+                            .select('*')
+                            .where('test_id', test_id)
+                            .preload('test', (testQuery) => {
+                                testQuery.select(['questions_count']).as('questions_count');
+                            })
+                            .orderBy('created_at', 'asc')
+                    }
+                    await trx.commit();
+                    let readyResults: FetchResultStd[] = [];
+                    // Форматирование итоговых объектов result для добавления ключа questionsCount и удаления test
+                    readyResults = [...results.map((result) => {
+                        const readyResult = {
+                            ...result.toJSON(),
+                            questionsCount: result.test.questionsCount,
+                        } as FetchResultStd;
+                        Reflect.deleteProperty(readyResult, 'test');
+                        return readyResult;
+                    })] 
+                    resolve({ paginator, results: readyResults });
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/results/services/results_service.ts: [ResultsService]:getResultsStd => ', err);
                     reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
                 }
             });

@@ -5,9 +5,9 @@ import { controllerLogger } from "#services/logger/logger_service";
 import { Err } from "#services/logger/types";
 import { ResponseData } from "#types/http_types";
 import User from "#models/user";
-import { resultCheckValidatorTchr, resultCreationValidator, resultFetchValidatorTchr, resultsFetchValidatorTchr } from "../validators/results_validate.js";
+import { resultCheckValidatorTchr, resultCreationValidator, resultFetchValidatorTchr, resultsFetchValidatorStd, resultsFetchValidatorTchr } from "../validators/results_validate.js";
 import ResultsService from "../services/results_service.js";
-import { RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsTchr } from "../types/results_types.js";
+import { RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsStd, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsStd, ResponseFetchResultsTchr } from "../types/results_types.js";
 
 export default class ResultsController {
 
@@ -25,6 +25,25 @@ export default class ResultsController {
             // Создание результата в БД
             await ResultsService.createNewResultStd(valideData, student).catch((err: Err) => { throw err });
             response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: null } as ResponseData);
+        } 
+        // Админу и Учителю в доступе к маршруту отказано
+        else throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
+    }
+
+    // Получение результатов теста (STUDENT)
+    @controllerLogger(import.meta.url)
+    async indexStudent({ request, response, auth }: HttpContext) {
+        //########### Проверка аутентификации ##########
+        const student: User = await auth.authenticate();
+        // Если контроллер выполнился для пользователя с ролью "student", 
+        if(student.role === 'student') {
+            const rawParams = request.params();
+            const rawQs = request.qs();
+            // Проверка / валидация полей запроса
+            const valideData: RequestFetchResultsStd = await resultsFetchValidatorStd.validate({ ...rawParams, ...rawQs });
+            // Извлечение результатов теста из БД
+            const { paginator, results }: ResponseFetchResultsStd = await ResultsService.getResultsStd(valideData, student).catch((err: Err) => { throw err });
+            response.send({ meta: { status: 200, url: request.url(), paginator }, data: { results } } as ResponseData);
         } 
         // Админу и Учителю в доступе к маршруту отказано
         else throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
