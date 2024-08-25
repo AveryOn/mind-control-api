@@ -5,7 +5,7 @@ import { Err } from "#services/logger/types";
 import { ResponseData } from "#types/http_types";
 import User from "#models/user";
 import { creationTestValidator, getTestByIdStudentValidator, getTestByIdTeacherValidator, getTestsValidatorTeacher } from "../validators/tests_validate.js";
-import { FetchStudentTestByID, FetchTeacherTestByID, FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests, TestDataForStudent, TestDataForTeacher } from "../types/tests_types.js";
+import { FetchStudentTestByID, FetchStudentTestsParams, FetchTeacherTestByID, FetchTeacherTestsParams, RequestTestData, ResponseCreationTestData, ResponseFetchStudentTests, ResponseFetchTeacherTests, TestDataForStudent, TestDataForTeacher } from "../types/tests_types.js";
 import TestsService from "../services/tests_service.js";
 
 export default class TestsController {
@@ -51,7 +51,7 @@ export default class TestsController {
         if(student.role === 'student') {
             // Проверка / валидация полей запроса
             const rawQs = request.qs();
-            const validData: FetchTeacherTestsParams = await getTestsValidatorTeacher.validate(rawQs);
+            const validData: FetchStudentTestsParams = await getTestsValidatorTeacher.validate(rawQs);
             const { paginator, tests }: ResponseFetchStudentTests = await TestsService.getTestsStudent(validData, student);
             response.send({ meta: { status: 200, url: request.url(), paginator }, data: { tests } } as ResponseData);
         } 

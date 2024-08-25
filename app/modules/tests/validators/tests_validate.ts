@@ -25,6 +25,7 @@ export const creationTestValidator = vine.compile(vine.object({
 export const getTestsValidatorTeacher = vine.compile(vine.object({
     per_page: vine.number().positive().min(1).optional().requiredIfExists('page'),
     page: vine.number().positive().min(1).optional().requiredIfExists('per_page'),
+    only_checked: vine.boolean().optional(), // qs
 }));
 
 // Валидатор для получения теста по ID (STUDENT)

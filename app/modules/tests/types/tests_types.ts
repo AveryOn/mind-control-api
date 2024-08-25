@@ -97,6 +97,7 @@ export interface ResponseFetchTeacherTests {
 export interface FetchStudentTestsParams {
     page?: number;
     per_page?: number;
+    only_checked?: boolean;
 }
 
 // Объект данных возвращается на клиент после извлечения тестов с БД (STUDENT)

@@ -144,7 +144,7 @@ export default class TestsService {
     }
 
     // Получение списка тестов (STUDENT)
-    static async getTestsStudent({ page, per_page }: FetchStudentTestsParams, student: User): Promise<ResponseFetchStudentTests> {
+    static async getTestsStudent({ page, per_page, only_checked }: FetchStudentTestsParams, student: User): Promise<ResponseFetchStudentTests> {
         return new Promise((resolve, reject) => { 
             db.transaction(async (trx: TransactionClientContract) => { 
                 try {
@@ -191,12 +191,25 @@ export default class TestsService {
                     let readyTest: TestDataForStudent[] = [];
                     // Сборка итоговых данных тестов.
                     tests.forEach((test) => {
+                        // Если Опция "only_checked" равна - true, то не пропускаем в итоговый массив те тесты, которые не имеют результатов
+                        if(only_checked === true) {
+                            if(!test.results.length) return;
+                            else {
+                                return readyTest.push({
+                                    ...test.toJSON(),
+                                    result: null,
+                                    results: undefined,
+                                } as TestDataForStudent);
+                            }
+                        }
                         readyTest.push({
                             ...test.toJSON(),
                             result: (test.results.length)? test.results[0].toJSON() : null,
                             results: undefined,
                         } as TestDataForStudent);
                     });
+                            
+                    
 
                     await trx.commit();
                     resolve({ paginator, tests: readyTest });
