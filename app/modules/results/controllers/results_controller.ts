@@ -5,9 +5,9 @@ import { controllerLogger } from "#services/logger/logger_service";
 import { Err } from "#services/logger/types";
 import { ResponseData } from "#types/http_types";
 import User from "#models/user";
-import { resultCheckValidatorTchr, resultCreationValidator, resultFetchValidatorTchr, resultsFetchValidatorStd, resultsFetchValidatorTchr } from "../validators/results_validate.js";
+import { resultCheckValidatorTchr, resultCreationValidator, resultFetchValidatorStd, resultFetchValidatorTchr, resultsFetchValidatorStd, resultsFetchValidatorTchr } from "../validators/results_validate.js";
 import ResultsService from "../services/results_service.js";
-import { RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsStd, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsStd, ResponseFetchResultsTchr } from "../types/results_types.js";
+import { RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultStd, RequestFetchResultTchr, RequestFetchResultsStd, RequestFetchResultsTchr, ResponseFetchResultStd, ResponseFetchResultTchr, ResponseFetchResultsStd, ResponseFetchResultsTchr } from "../types/results_types.js";
 
 export default class ResultsController {
 
@@ -82,6 +82,24 @@ export default class ResultsController {
             const { result }: { result: ResponseFetchResultTchr } = await ResultsService.getResultByIdTchr(valideData).catch((err: Err) => { throw err });
             response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { result } } as ResponseData);
         }
+    }
+
+    // Получение результата по ID (STUDENT)
+    @controllerLogger(import.meta.url)
+    async getResultByIdStudent({ request, response, auth }: HttpContext) {
+        //########### Проверка аутентификации ##########
+        const student: User = await auth.authenticate();
+        // Если контроллер выполнился для пользователя с ролью "student", 
+        if(student.role === 'student') {
+            // Проверка / валидация полей запроса
+            const rawParams = request.params();
+            const valideData: RequestFetchResultStd = await resultFetchValidatorStd.validate(rawParams);
+            // Извлечение результа по ID из БД
+            const { result }: { result: ResponseFetchResultStd } = await ResultsService.getResultByIdStd(valideData).catch((err: Err) => { throw err });
+            response.send({ meta: { status: 200, url: request.url(), paginator: null }, data: { result } } as ResponseData);
+        }
+        // Админу и Учителю в доступе к маршруту отказано
+        else throw { code: "E_FORBIDDEN", status: 403, messages: [ { message: 'Не достаточно прав на выполнение запроса' } ] } as Err;
     }
 
     // Проверка результата теста учителем (ADMIN | TEACHER)

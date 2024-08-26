@@ -30,6 +30,12 @@ export const resultFetchValidatorTchr = vine.compile(vine.object({
     result_id: vine.number().positive().min(1),
 }));
 
+// Объект параметров необходимый для получения данных результата (STUDENT)
+export const resultFetchValidatorStd = vine.compile(vine.object({
+    test_id: vine.number().positive().min(1),
+    result_id: vine.number().positive().min(1),
+}));
+
 // Объект данных, необходимый для подтверждения проверки результата (ADMIN | TEACHER)
 export const resultCheckValidatorTchr = vine.compile(vine.object({
     check_date: vine.string().trim(),

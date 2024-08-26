@@ -27,6 +27,12 @@ export interface RequestFetchResultTchr {
     result_id: number;
 }
 
+// Объект необходимый для получения данных результата (STUDENT)
+export interface RequestFetchResultStd {
+    test_id: number;
+    result_id: number;
+}
+
 // Объект результата при извлечении из БД (ADMIN | TEACHER)
 export interface FetchResultTchr {
     id: number;
@@ -112,6 +118,40 @@ export type ResponseFetchResultTchr = FetchResultTchr & {
         createdAt: string;
         updatedAt: string;
     };
+}
+
+// Ответ при получении данных результата по ID (STUDENT)
+export type ResponseFetchResultStd = FetchResultStd & {
+    test: {
+        id: number;
+        title: string;
+        summary: string;
+        group: any;
+        questionsCount: number;
+        createdAt: string;
+        updatedAt: string;
+        groupId: undefined;
+    };
+    questions: {
+        id: number;
+        testId: number;
+        number: number;
+        question: string;
+        type: 'text' | 'checkbox' | 'radio';
+        radioAnswers: { answer: string; isCorrect: boolean }[];
+        checkboxAnswers: { answer: string; isCorrect: boolean }[];
+        createdAt: string;
+        updatedAt: string;
+    }[];
+    answers: {
+        id: number;
+        resultId: number;
+        questionId: number;
+        answer: string;
+        isCorrect: null | boolean;
+        createdAt: string;
+        updatedAt: string;
+    }[];
 }
 
 

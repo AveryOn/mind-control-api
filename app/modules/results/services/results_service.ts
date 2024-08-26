@@ -3,7 +3,7 @@ import { Err } from "#services/logger/types";
 import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import { Paginator } from "#types/http_types";
 import Result from "#models/result";
-import { FetchResultStd, FetchResultTchr, RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultTchr, RequestFetchResultsStd, RequestFetchResultsTchr, ResponseFetchResultTchr, ResponseFetchResultsStd, ResponseFetchResultsTchr } from "../types/results_types.js";
+import { FetchResultStd, FetchResultTchr, RequestCheckResultDataTchr, RequestCreationResultsStd, RequestFetchResultStd, RequestFetchResultTchr, RequestFetchResultsStd, RequestFetchResultsTchr, ResponseFetchResultStd, ResponseFetchResultTchr, ResponseFetchResultsStd, ResponseFetchResultsTchr } from "../types/results_types.js";
 import User from "#models/user";
 import Answer from "#models/answer";
 import Test from "#models/test";
@@ -107,6 +107,9 @@ export default class ResultsService {
                             .preload('test', (testQuery) => {
                                 testQuery.select('questions_count').as('questions_count')
                             })
+                            .andWhere('user_id', student.id)
+                            .andWhere('is_checked', true)
+                            .andWhereNotNull('check_date')
                             .orderBy('created_at', 'asc')
                             .offset(compOffset(paginator))
                             .limit(paginator.perPage!);
@@ -117,6 +120,9 @@ export default class ResultsService {
                             .query({ client: trx })
                             .select('*')
                             .where('test_id', test_id)
+                            .andWhere('user_id', student.id)
+                            .andWhere('is_checked', true)
+                            .andWhereNotNull('check_date')
                             .preload('test', (testQuery) => {
                                 testQuery.select(['questions_count']).as('questions_count');
                             })
@@ -229,6 +235,39 @@ export default class ResultsService {
                 } catch (err) {
                     await trx.rollback();
                     console.error('modules/results/services/results_service.ts: [ResultsService]:getResultByIdTchr => ', err);
+                    reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
+                }
+            });
+        });
+    }
+
+    // Получение данных результата по ID (STUDENT)
+    static async getResultByIdStd({ test_id, result_id }: RequestFetchResultStd): Promise<{ result: ResponseFetchResultStd }> {
+        return new Promise((resolve, reject) => { 
+            db.transaction(async (trx: TransactionClientContract) => { 
+                try {
+                    const test = await Test.find(test_id, { client: trx });
+                    if(test) {
+                        test.useTransaction(trx);
+                        await test.load('group');
+                        const result: Result = await test.related('results').query().select('*').where('results.id', result_id).firstOrFail();
+                        result.useTransaction(trx)
+                        const questions: Question[] = await test.related('questions').query().select('*').orderBy('created_at', 'asc')
+                        const answers: Answer[] = await result.related('answers').query().select('*').orderBy('created_at', 'asc');
+                        await trx.commit();
+                        const readyResult = {
+                            ...result.toJSON(),
+                            questionsCount: test.questionsCount,
+                            test: { ...test.toJSON(), groupId: undefined },
+                            questions: questions.map((question) => question.toJSON()),
+                            answers: answers.map((answer) => answer.toJSON()),
+                        } as ResponseFetchResultTchr;
+                        resolve({ result: readyResult });
+                    } 
+                    else reject({ code: "E_DATABASE_EXCEPTION", status: 500, messages: [{message: 'Не удалось получить данные теста'}] } as Err);
+                } catch (err) {
+                    await trx.rollback();
+                    console.error('modules/results/services/results_service.ts: [ResultsService]:getResultByIdStd => ', err);
                     reject({ code: "E_INTERNAL", status: 500, messages: [{message: 'Внутрення ошибка сервера'}] } as Err);
                 }
             });
