@@ -61,11 +61,14 @@ export default class UsersQueriesService {
     }
 
     // Создание нового токена доступа для пользователя
-    static async loginUser(data: UserLoginData): Promise<ResultLoginUserData | null> {
+    static async loginUser({ login, password }: UserLoginData): Promise<ResultLoginUserData | null> {
         return new Promise((resolve, reject) => {
             db.transaction(async (trx) => {
                 try {
-                    const user: User | null = await User.query({client: trx}).select('*').where('login', data.login).first();
+                    // Проверка учетных данных пользователя
+                    const user: User = await User
+                        .verifyCredentials(login, password)
+                        .catch(() => {throw { code: "E_VALIDATION_ERROR", status: 422, messages: [{ message: 'Не удалось авторизоваться в системе' }] } as Err})
                     if(user) {
                         const accessToken: TokenForClient = (await User.accessTokens.create(user)).toJSON() as any;
                         const readyUser: UserForClient = user.toJSON() as any;

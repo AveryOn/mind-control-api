@@ -9,7 +9,6 @@ import { Err } from "#services/logger/types";
 import { ResponseData } from "#types/http_types";
 import { AccessToken } from "@adonisjs/auth/access_tokens";
 
-
 export default class AuthController {
 
     // Авторизация в системе
@@ -41,5 +40,13 @@ export default class AuthController {
         //########### Удаление токена ##########
         const result: number = await User.accessTokens.delete(user, user.currentAccessToken.identifier);
         response.send({ meta: { status: 200, url: request.url() }, data: result } as ResponseData);
+    }
+
+    // Проверка доступа к системе
+    @controllerLogger(import.meta.url)
+    async checkAccess({ request, response, auth }: HttpContext) {
+        //########### Проверка аутентификации ##########
+        await auth.authenticate();
+        response.send({ meta: { status: 200, url: request.url() }, data: null } as ResponseData);
     }
 }
