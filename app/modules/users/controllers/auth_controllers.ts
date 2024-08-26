@@ -30,7 +30,7 @@ export default class AuthController {
         const user: User = await UsersQueriesService.createUser(valideBody);
         const readyUser = user.toJSON();
         Reflect.deleteProperty(readyUser, 'password'); // Удаление пароля из итогового объекта данных
-        response.send({ meta: { status: 200, url: request.url() }, data: readyUser } as ResponseData);
+        response.send({ meta: { status: 200, url: request.url() }, data: { user: readyUser } } as ResponseData);
     }
 
     // Выход пользователя из системы
