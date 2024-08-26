@@ -150,7 +150,7 @@ export default class ResultsService {
     }
 
     // Получение результатов (ADMIN | TEACHER)
-    static async getResultsTchr({ page, per_page, test_id }: RequestFetchResultsTchr, teacher: User): Promise<ResponseFetchResultsTchr> {
+    static async getResultsTchr({ page, per_page, test_id }: RequestFetchResultsTchr): Promise<ResponseFetchResultsTchr> {
         return new Promise((resolve, reject) => { 
             db.transaction(async (trx: TransactionClientContract) => { 
                 try {
@@ -275,7 +275,7 @@ export default class ResultsService {
     }
 
     // Подтверждение проверки результата Учителем (ADMIN | TEACHER)
-    static async checkResultTchrDB({ test_id, result_id, check_date, is_success, result_answers }: RequestCheckResultDataTchr): Promise<null> {
+    static async checkResultTchrDB({ result_id, check_date, is_success, result_answers }: RequestCheckResultDataTchr): Promise<null> {
         return new Promise((resolve, reject) => { 
             db.transaction(async (trx: TransactionClientContract) => { 
                 try {

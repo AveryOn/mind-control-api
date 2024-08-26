@@ -37,7 +37,7 @@ function bundleControllerLog(HttpMethod: HttpMethods, controllerName: string, ta
 // Сервис логгирования для контроллеров
 export function controllerLogger(path: string, ) {
     return (target: any, key: string, descriptor: PropertyDescriptor) => {
-        const controllerMethod = descriptor.value;
+        const controllerMethod = descriptor.value; target
     
         descriptor.value = async function ({...ctx}: HttpContext) {
             try {

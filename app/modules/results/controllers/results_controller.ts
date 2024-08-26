@@ -62,7 +62,7 @@ export default class ResultsController {
             const rawQs = request.qs();
             const valideData: RequestFetchResultsTchr = await resultsFetchValidatorTchr.validate({ ...rawParams, ...rawQs });
             // Извлечение результатов теста из БД
-            const { paginator, results }: ResponseFetchResultsTchr = await ResultsService.getResultsTchr(valideData, user).catch((err: Err) => { throw err });
+            const { paginator, results }: ResponseFetchResultsTchr = await ResultsService.getResultsTchr(valideData).catch((err: Err) => { throw err });
             response.send({ meta: { status: 200, url: request.url(), paginator }, data: { results } } as ResponseData);
         }
     }

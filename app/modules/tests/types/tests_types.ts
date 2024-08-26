@@ -1,4 +1,3 @@
-import Test from "#models/test";
 import { Paginator } from "#types/http_types";
 
 // Единица вопроса теста для создания
